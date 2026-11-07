@@ -5,13 +5,14 @@
 <h1 align="center">Regression Lab</h1>
 
 <p align="center">
-  <strong>An interactive, browser-based lab for learning linear regression and its evaluation metrics.</strong><br>
+  <strong>An interactive, browser-based lab for learning linear and polynomial regression and their evaluation metrics.</strong><br>
   College of Computer Studies · University of Technology Bahrain
 </p>
 
 <p align="center">
-  <a href="https://saeedserwan.github.io/regression/"><strong>▶ Open the live lab</strong></a> ·
-  <a href="notebooks/linear_regression_metrics.ipynb">Jupyter notebook</a> ·
+  <a href="https://saeedserwan.github.io/regression/"><strong>▶ Lesson 1: Linear regression</strong></a> ·
+  <a href="https://saeedserwan.github.io/regression/polynomial.html"><strong>▶ Lesson 2: Polynomial regression</strong></a><br>
+  <a href="notebooks/">Jupyter notebooks</a> ·
   <a href="data/">Datasets</a>
 </p>
 
@@ -19,11 +20,13 @@
 
 ## Overview
 
-Regression Lab helps students build real intuition for **simple linear regression** by manipulating it directly. Drag data points, fit a line by eye, and watch every evaluation metric respond in real time. Then compare your attempt with the optimal least-squares solution.
+Regression Lab helps students build real intuition for **linear and polynomial regression** by manipulating them directly. Drag data points, fit a line by eye, and watch every evaluation metric respond in real time. Then compare your attempt with the optimal least-squares solution.
 
 It runs entirely in the browser: no installation, no sign-up, no server. It also works offline in a computer lab once the repository is downloaded.
 
 ## What students learn
+
+### Lesson 1: Linear regression · [open](https://saeedserwan.github.io/regression/)
 
 | # | Section | Key ideas |
 |---|---|---|
@@ -38,9 +41,25 @@ It runs entirely in the browser: no installation, no sign-up, no server. It also
 | 9 | **Do it in Python** | NumPy, scikit-learn and statsmodels code generated from the current data |
 | 10 | **Quiz** | ten self-check questions with instant explanations |
 
+### Lesson 2: Polynomial regression · [open](https://saeedserwan.github.io/regression/polynomial.html)
+
+| # | Section | Key ideas |
+|---|---|---|
+| 1 | **When lines fail** | curved scatter, patterned residuals, the polynomial model |
+| 2 | **Anatomy of a polynomial** | what each coefficient does: bends, end behaviour, vertex |
+| 3 | **Fit a curve** | degree slider, live residual plot, training metrics vs 5-fold CV RMSE |
+| 4 | **Still linear regression** | feature engineering, the design matrix, why features must be scaled |
+| 5 | **Choosing the degree** | train vs cross-validated error, adjusted R², bias–variance trade-off |
+| 6 | **Beware extrapolation** | how fits that agree inside the data diverge outside it |
+| 7 | **Ridge regularisation** | the L2 penalty, choosing λ by cross-validation, coefficient shrinkage |
+| 8 | **Do it in Python** | NumPy, scikit-learn pipelines with CV, and Ridge, generated from the current data |
+| 9 | **Quiz** | nine self-check questions |
+
 ## Datasets
 
-Switch between ten datasets in the playground, or import your own CSV.
+Each lesson has its own set of datasets to switch between, and both accept your own CSV.
+
+**Lesson 1 (linear relationships)**
 
 | Dataset | x | y |
 |---|---|---|
@@ -54,6 +73,18 @@ Switch between ten datasets in the playground, or import your own CSV.
 | No relationship | x | y (pure noise) |
 | Random generator | adjustable sample size, noise and slope | |
 | Blank canvas | click to create your own points | |
+
+**Lesson 2 (curved relationships)**
+
+| Dataset | x | y | Shape |
+|---|---|---|---|
+| Car speed → stopping distance | speed (km/h) | distance (m) | quadratic (physics) |
+| Thrown ball: height over time | time (s) | height (m) | exact parabola |
+| Fertiliser → crop yield | fertiliser (kg/ha) | yield (t/ha) | rise then fall |
+| Age → monthly income | age (years) | income (BD) | inverted U |
+| Hour of day → electricity demand | hour | demand (MW) | daily wave |
+| Straight-line data (control) | hours studied | exam score | linear: extra degrees don't help |
+| Random wave | adjustable noise and size | sin(2πx) + noise | non-polynomial |
 
 All datasets are synthetic, generated with fixed random seeds so that every student sees the same numbers. CSV copies are in [`data/`](data/).
 
@@ -73,7 +104,7 @@ Every value shown on the site has been verified against **NumPy**, **scikit-lear
 ## Using it in class
 
 - **Lecture:** project the live lab and move points while discussing each metric.
-- **Lab session:** students open the notebook in Jupyter or [Google Colab](https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/linear_regression_metrics.ipynb) and work through the exercises.
+- **Lab session:** students open a notebook in Jupyter or Google Colab and work through the exercises: [Lesson 1 in Colab](https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/linear_regression_metrics.ipynb) · [Lesson 2 in Colab](https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/polynomial_regression.ipynb).
 - **Self-study:** the quiz at the end gives instant feedback with explanations.
 
 ## Run locally
@@ -95,16 +126,20 @@ python python/regression_metrics.py data/house_size_price.csv --plot
 
 ```
 regression/
-├── index.html                  # the interactive lab
+├── index.html                  # Lesson 1: linear regression
+├── polynomial.html             # Lesson 2: polynomial regression
 ├── assets/
 │   ├── css/style.css
-│   ├── js/core.js              # fitting, metrics, statistics (testable in Node)
-│   ├── js/app.js               # interactive visualisations
+│   ├── js/core.js              # fitting, metrics, statistics, CV (testable in Node)
+│   ├── js/ui.js                # shared plotting and UI helpers
+│   ├── js/app.js               # Lesson 1 interactions
+│   ├── js/poly.js              # Lesson 2 interactions
 │   ├── img/                    # UTB logo and favicons
 │   └── vendor/                 # KaTeX and fonts, bundled for offline use
 ├── data/                       # all datasets as CSV
 ├── notebooks/
-│   └── linear_regression_metrics.ipynb
+│   ├── linear_regression_metrics.ipynb
+│   └── polynomial_regression.ipynb
 └── python/
     └── regression_metrics.py   # metrics from scratch vs scikit-learn
 ```

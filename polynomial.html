@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polynomial Regression · Regression Lab</title>
+  <meta name="description" content="Interactive lesson on polynomial regression: fit curves with least squares, read residual plots, choose the degree with cross-validation, avoid extrapolation traps and regularise with ridge. College of Computer Studies, University of Technology Bahrain.">
+  <meta name="author" content="Eng. Saeed Serwan Abdulsattar">
+  <meta property="og:title" content="Polynomial Regression — Regression Lab">
+  <meta property="og:description" content="When a straight line isn't enough: fit curves, choose the degree, and avoid overfitting.">
+  <meta property="og:image" content="assets/img/favicon-512.png">
+  <meta name="theme-color" content="#d52a55">
+  <link rel="icon" type="image/svg+xml" href="assets/img/utb-logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/img/favicon-180.png">
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="index.html">
+    <img class="brand-logo" src="assets/img/utb-logo.svg" alt="University of Technology Bahrain logo" onerror="this.remove()">
+    <div class="brand-text">
+      <span class="brand-title">Regression Lab</span>
+      <span class="brand-sub">College of Computer Studies · University of Technology Bahrain</span>
+    </div>
+  </a>
+  <nav class="page-tabs" aria-label="Lessons">
+    <a href="index.html">Linear regression</a>
+    <a href="polynomial.html" class="active" aria-current="page">Polynomial regression</a>
+  </nav>
+  <nav class="top-links">
+    <a href="https://github.com/SaeedSerwan/regression" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#why">When lines fail</a></li>
+      <li><a href="#anatomy">Anatomy of a polynomial</a></li>
+      <li><a href="#playground">Fit a curve</a></li>
+      <li><a href="#design">Still linear regression</a></li>
+      <li><a href="#degree">Choosing the degree</a></li>
+      <li><a href="#extrapolation">Beware extrapolation</a></li>
+      <li><a href="#ridge">Taming wiggles: ridge</a></li>
+      <li><a href="#code">Do it in Python</a></li>
+      <li><a href="#quiz">Check your understanding</a></li>
+    </ol>
+  </aside>
+
+  <main>
+    <!-- ================================================================ HERO -->
+    <section class="hero">
+      <p class="eyebrow">Supervised learning · Regression · Lesson 2</p>
+      <h1>When a straight line <em>isn’t enough</em>.</h1>
+      <p class="lead">
+        Stopping distance grows with the square of speed. Crop yield rises and then falls as fertiliser increases.
+        Electricity demand follows the clock. Polynomial regression captures curved relationships like these with the
+        same least-squares method you already know. Fitting the curve is the easy part; the real skill is choosing <em>how flexible</em> it should be.
+      </p>
+      <div class="learn-grid">
+        <div><span class="num">01</span>Spot non-linearity in scatter and residual plots</div>
+        <div><span class="num">02</span>Read the shape of a polynomial from its coefficients</div>
+        <div><span class="num">03</span>Explain why polynomial regression is still <em>linear</em> regression</div>
+        <div><span class="num">04</span>Choose the degree with cross-validation and adjusted R²</div>
+        <div><span class="num">05</span>Recognise extrapolation risk and use ridge to control overfitting</div>
+      </div>
+    </section>
+
+    <!-- =========================================================== 1 · WHY -->
+    <section id="why" class="chapter">
+      <h2><span class="chap">1</span>When lines fail</h2>
+      <p>A straight line assumes that each extra unit of \(x\) changes \(y\) by the same amount, everywhere. Many real relationships do not behave like that. Two warning signs tell you a line is the wrong shape:</p>
+      <div class="def-grid">
+        <div><strong>The scatter bends.</strong> The points curve away from any line you could draw.</div>
+        <div><strong>The residuals have a pattern.</strong> Plot \(e_i = y_i - \hat y_i\) against \(x\). A good model leaves random scatter around 0; a U-shape or wave means structure the model missed.</div>
+      </div>
+      <p>Polynomial regression adds powers of \(x\) to the model:</p>
+      <div class="formula">$$\hat y = \beta_0 + \beta_1 x + \beta_2 x^2 + \beta_3 x^3 + \dots + \beta_d x^d$$</div>
+      <div class="def-grid">
+        <div><strong>\(d\)</strong> the <em>degree</em>: the highest power used. \(d = 1\) is the straight line from lesson 1.</div>
+        <div><strong>\(\beta_0, \dots, \beta_d\)</strong> \(d + 1\) coefficients, all learned by least squares.</div>
+        <div><strong>\(d = 2\)</strong> quadratic: one bend (a parabola).</div>
+        <div><strong>\(d = 3\)</strong> cubic: up to two bends (an S-shape).</div>
+      </div>
+    </section>
+
+    <!-- ======================================================= 2 · ANATOMY -->
+    <section id="anatomy" class="chapter">
+      <h2><span class="chap">2</span>Anatomy of a polynomial</h2>
+      <p>Before fitting data, build intuition for what each coefficient does. Move the sliders, or start from a preset.</p>
+      <div class="pg-grid">
+        <figure class="plot-card"><svg id="an-plot" class="plot" role="img" aria-label="Polynomial curve"></svg></figure>
+        <div class="side">
+          <div class="panel">
+            <h4>Coefficients <span class="eq user" id="an-eq"></span></h4>
+            <label class="slider"><span>β₃ (cubic) <b id="an-b3-val"></b></span><input type="range" id="an-b3" min="-1" max="1" step="0.01" value="0"></label>
+            <label class="slider"><span>β₂ (quadratic) <b id="an-b2-val"></b></span><input type="range" id="an-b2" min="-3" max="3" step="0.05" value="1"></label>
+            <label class="slider"><span>β₁ (linear) <b id="an-b1-val"></b></span><input type="range" id="an-b1" min="-10" max="10" step="0.1" value="0"></label>
+            <label class="slider"><span>β₀ (intercept) <b id="an-b0-val"></b></span><input type="range" id="an-b0" min="-20" max="20" step="0.5" value="-5"></label>
+            <div class="btn-row">
+              <button class="btn ghost small" data-preset="line">Line</button>
+              <button class="btn ghost small" data-preset="up">Parabola ∪</button>
+              <button class="btn ghost small" data-preset="down">Parabola ∩</button>
+              <button class="btn ghost small" data-preset="s">S-curve</button>
+            </div>
+          </div>
+          <div class="panel" id="an-facts"></div>
+        </div>
+      </div>
+      <p class="note">The <strong>leading coefficient</strong> (the highest power with a non-zero coefficient) decides what happens far from the centre: a positive β₂ opens upwards, a negative β₂ downwards. A degree-\(d\) polynomial can bend at most \(d - 1\) times. That flexibility is both its strength and its danger.</p>
+    </section>
+
+    <!-- ==================================================== 3 · PLAYGROUND -->
+    <section id="playground" class="chapter">
+      <h2><span class="chap">3</span>Fit a curve</h2>
+      <p>Pick a dataset and raise the <strong>degree</strong>. Compare the <span class="swatch user"></span><strong>polynomial fit</strong> with the <span class="swatch fit"></span><strong>straight line</strong>, and watch the residual plot below it: when the degree is right, the pattern disappears.</p>
+
+      <div class="toolbar">
+        <label class="field">
+          <span>Dataset</span>
+          <select id="pds-select">
+            <optgroup label="Curved, real-world style">
+              <option value="stopping">Car speed → stopping distance</option>
+              <option value="projectile">Thrown ball: height over time</option>
+              <option value="fertiliser">Fertiliser → crop yield</option>
+              <option value="income">Age → monthly income</option>
+              <option value="electricity">Hour of day → electricity demand</option>
+            </optgroup>
+            <optgroup label="Experiments">
+              <option value="straight">Straight-line data (control)</option>
+              <option value="wave">Random wave (choose the noise)</option>
+              <option value="blank">Blank canvas — make your own</option>
+              <option value="custom" disabled>Your uploaded data</option>
+            </optgroup>
+          </select>
+        </label>
+        <div class="toolbar-actions">
+          <button class="btn ghost" id="pbtn-import">Import CSV / paste</button>
+          <button class="btn ghost" id="pbtn-export">Download CSV</button>
+        </div>
+      </div>
+
+      <div id="pwave-controls" class="random-controls" hidden>
+        <label class="slider"><span>Points <b id="pw-n-val"></b></span><input type="range" id="pw-n" min="8" max="80" value="30"></label>
+        <label class="slider"><span>Noise σ <b id="pw-noise-val"></b></span><input type="range" id="pw-noise" min="0" max="0.8" step="0.05" value="0.25"></label>
+        <button class="btn" id="pw-go">New sample</button>
+      </div>
+
+      <div id="pimport-panel" class="import-panel" hidden>
+        <p>Paste two columns (x, y) separated by a comma, tab or space. A header row is fine. Or choose a <code>.csv</code> file.</p>
+        <textarea id="pimport-text" rows="6" placeholder="speed,distance&#10;30,14&#10;50,35&#10;80,72"></textarea>
+        <div class="row">
+          <input type="file" id="pimport-file" accept=".csv,.txt,.tsv">
+          <button class="btn" id="pimport-go">Load data</button>
+          <span id="pimport-msg" class="msg"></span>
+        </div>
+      </div>
+
+      <p class="story" id="pds-story"></p>
+
+      <div class="pg-grid">
+        <div class="stack">
+          <figure class="plot-card">
+            <svg id="pp-plot" class="plot" role="img" aria-label="Scatter plot with polynomial fit"></svg>
+            <figcaption>Drag a point to move it · click empty space to add one · double-click a point to delete it.</figcaption>
+          </figure>
+          <figure class="plot-card">
+            <svg id="pp-resid" class="plot" role="img" aria-label="Residuals against x"></svg>
+            <figcaption>Residual plot for the degree-<span id="pp-resid-deg">1</span> fit: look for patterns, not just size.</figcaption>
+          </figure>
+        </div>
+
+        <div class="side">
+          <div class="panel">
+            <h4>Model</h4>
+            <label class="slider"><span>Degree d <b id="pp-deg-val"></b></span><input type="range" id="pp-deg" min="1" max="10" value="1"></label>
+            <p class="poly-eq" id="pp-eq"></p>
+            <div class="toggles">
+              <label><input type="checkbox" id="ptg-line" checked> Straight line (degree 1)</label>
+              <label><input type="checkbox" id="ptg-resid" checked> Residuals on the plot</label>
+            </div>
+          </div>
+          <div class="panel">
+            <h4>Live metrics</h4>
+            <table class="metric-table">
+              <thead><tr><th></th><th class="user" id="pp-col-deg">Degree d</th><th class="fit">Line</th></tr></thead>
+              <tbody id="pp-metrics"></tbody>
+            </table>
+            <p class="tiny">MAE, MSE, RMSE and R² are measured on the training data. <strong>CV RMSE</strong> is 5-fold cross-validated: the honest estimate of error on new data.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== 4 · DESIGN -->
+    <section id="design" class="chapter">
+      <h2><span class="chap">4</span>Why it is still <em>linear</em> regression</h2>
+      <p>The curve bends, but the model is <strong>linear in its coefficients</strong>. Each \(\beta_j\) simply multiplies a column of numbers. We create new features \(x^2, x^3, \dots\) from \(x\) and then run ordinary multiple linear regression on them. This trick is called <strong>feature engineering</strong>, or a <em>basis expansion</em>.</p>
+      <div class="formula">$$X = \begin{bmatrix} 1 & x_1 & x_1^2 & \cdots & x_1^d \\ 1 & x_2 & x_2^2 & \cdots & x_2^d \\ \vdots & & & & \vdots \\ 1 & x_n & x_n^2 & \cdots & x_n^d \end{bmatrix}, \qquad \hat{\boldsymbol\beta} = (X^\top X)^{-1} X^\top \mathbf{y}$$</div>
+      <p>Here is the feature matrix \(X\) for the playground data at the current degree:</p>
+      <div class="table-wrap"><table class="resid-table" id="dm-table"></table></div>
+      <p class="note">Look at the last row: the columns live on wildly different scales (\(x^{d}\) can be billions of times larger than \(x\)). That makes \(X^\top X\) numerically fragile. In practice, <strong>scale the features</strong> first (for example with <code>StandardScaler</code>). This site maps \(x\) to the range \([-1, 1]\) internally and solves with a QR decomposition for stability.</p>
+    </section>
+
+    <!-- ======================================================== 5 · DEGREE -->
+    <section id="degree" class="chapter">
+      <h2><span class="chap">5</span>Choosing the degree</h2>
+      <p>A higher degree <em>always</em> lowers training error, because a more flexible curve can always pass closer to the points. So training error cannot tell you when to stop. Two better tools:</p>
+      <div class="def-grid">
+        <div><strong>Adjusted R²</strong> penalises each extra coefficient, so it only rises if a new term earns its place: $$\bar R^2 = 1 - (1-R^2)\,\frac{n-1}{n-d-1}$$</div>
+        <div><strong>k-fold cross-validation</strong> splits the data into \(k\) folds, trains on \(k-1\) and tests on the one left out, \(k\) times. The pooled test error estimates performance on unseen data.</div>
+      </div>
+      <div class="folds" aria-hidden="true" id="fold-diagram"></div>
+      <div class="two-col">
+        <figure class="plot-card"><svg id="dg-rmse" class="plot" role="img" aria-label="Training and cross-validated RMSE by degree"></svg><figcaption>Train vs 5-fold CV RMSE (log scale)</figcaption></figure>
+        <figure class="plot-card"><svg id="dg-r2" class="plot" role="img" aria-label="R squared and adjusted R squared by degree"></svg><figcaption>R² vs adjusted R² on the training data</figcaption></figure>
+      </div>
+      <div class="callout-row" id="dg-stats"></div>
+      <p class="note">This is the <strong>bias–variance trade-off</strong>. Too low a degree gives <em>high bias</em>: the model is too rigid and misses the shape (underfitting). Too high a degree gives <em>high variance</em>: the curve chases noise and changes wildly with each new sample (overfitting). Pick the degree with the lowest CV error. If two degrees are close, prefer the simpler model.</p>
+    </section>
+
+    <!-- ================================================= 6 · EXTRAPOLATION -->
+    <section id="extrapolation" class="chapter">
+      <h2><span class="chap">6</span>Beware extrapolation</h2>
+      <p>Inside the range of the training data a polynomial can fit beautifully. Outside it, the highest power takes over and the curve shoots towards ±∞. The <span class="swatch shade"></span>shaded band is where the model has seen data; everything else is a guess.</p>
+      <figure class="plot-card"><svg id="ex-plot" class="plot" role="img" aria-label="Polynomial fits extended beyond the data"></svg></figure>
+      <div class="controls-row">
+        <label class="slider wide"><span>Look beyond the data by <b id="ex-ext-val"></b></span><input type="range" id="ex-ext" min="0.1" max="1" step="0.05" value="0.5"></label>
+      </div>
+      <p class="note">Fits of different degrees often agree inside the data and disagree completely outside it. Never trust a polynomial’s prediction far beyond the observed \(x\) range. If you must extrapolate, use a model whose shape is justified by theory, such as the physics behind the stopping-distance or projectile data.</p>
+    </section>
+
+    <!-- ========================================================= 7 · RIDGE -->
+    <section id="ridge" class="chapter">
+      <h2><span class="chap">7</span>Taming wiggles: ridge regularisation</h2>
+      <p>Overfit polynomials usually have <em>huge</em> coefficients that cancel each other out. <strong>Ridge regression</strong> adds a penalty on coefficient size to the least-squares loss, so the model prefers smaller, smoother solutions:</p>
+      <div class="formula">$$\min_{\boldsymbol\beta}\; \sum_{i=1}^{n} (y_i - \hat y_i)^2 \;+\; \lambda \sum_{j=1}^{d} \beta_j^2$$</div>
+      <p>\(\lambda = 0\) is ordinary least squares. As \(\lambda\) grows, the curve is pulled towards a flat line. The intercept \(\beta_0\) is not penalised. The data comes from the playground.</p>
+      <div class="controls-row">
+        <label class="slider"><span>Degree <b id="rg-deg-val"></b></span><input type="range" id="rg-deg" min="2" max="10" value="10"></label>
+        <label class="slider wide"><span>Penalty λ <b id="rg-lam-val"></b></span><input type="range" id="rg-lam" min="-6" max="2" step="0.1" value="-3"></label>
+      </div>
+      <div class="two-col">
+        <figure class="plot-card"><svg id="rg-plot" class="plot" role="img" aria-label="Ridge versus unregularised fit"></svg></figure>
+        <figure class="plot-card"><svg id="rg-cv" class="plot" role="img" aria-label="CV RMSE by lambda"></svg><figcaption>5-fold CV RMSE as λ varies</figcaption></figure>
+      </div>
+      <h3>Coefficient sizes</h3>
+      <p class="tiny">Absolute coefficients on the scaled features (log scale): <span class="swatch fit"></span>least squares vs <span class="swatch user"></span>ridge.</p>
+      <div id="rg-bars" class="coef-bars"></div>
+      <div class="callout-row" id="rg-stats"></div>
+      <p class="note">Ridge needs features on comparable scales, otherwise the penalty hits some coefficients far harder than others. Always standardise before regularising. Choose λ with cross-validation, exactly like the degree. Its sibling, <strong>Lasso</strong> (an L1 penalty), can shrink coefficients all the way to 0 and so selects features automatically.</p>
+    </section>
+
+    <!-- ========================================================== 8 · CODE -->
+    <section id="code" class="chapter">
+      <h2><span class="chap">8</span>Do it in Python</h2>
+      <p>The snippets below use the <strong>current playground data and degree</strong>. Copy one into Jupyter or Google Colab.</p>
+      <div class="seg" role="tablist" aria-label="Code examples">
+        <button class="seg-btn active" data-code="numpy">NumPy</button>
+        <button class="seg-btn" data-code="sklearn">scikit-learn + CV</button>
+        <button class="seg-btn" data-code="ridge">Ridge</button>
+      </div>
+      <div class="code-box">
+        <button class="btn small copy" id="pcode-copy">Copy</button>
+        <pre><code id="pcode-block"></code></pre>
+      </div>
+      <p class="note">Every CSV dataset used here is in the repository’s <a href="https://github.com/SaeedSerwan/regression/tree/main/data" target="_blank" rel="noopener"><code>data/</code></a> folder, and the lesson notebook is in <a href="https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/polynomial_regression.ipynb" target="_blank" rel="noopener"><code>notebooks/polynomial_regression.ipynb</code></a> (opens in Colab).</p>
+    </section>
+
+    <!-- ========================================================== 9 · QUIZ -->
+    <section id="quiz" class="chapter">
+      <h2><span class="chap">9</span>Check your understanding</h2>
+      <p>Answer each question; feedback appears instantly.</p>
+      <div id="pquiz-box"></div>
+      <div class="quiz-score" id="pquiz-score"></div>
+      <a class="next-card" href="index.html">
+        <span class="next-eyebrow">Review</span>
+        <span class="next-title">← Back to linear regression</span>
+        <span class="next-text">Revisit the metrics, gradient descent and the statistics of the slope.</span>
+      </a>
+    </section>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <img class="footer-logo" src="assets/img/utb-logo.svg" alt="" onerror="this.remove()">
+    <div>
+      <p><strong>Regression Lab</strong>: an open teaching resource for Machine Learning and Data Science courses.</p>
+      <p>Created by <strong>Eng. Saeed Serwan Abdulsattar</strong>, College of Computer Studies, University of Technology Bahrain.</p>
+      <p><a href="https://github.com/SaeedSerwan/regression" target="_blank" rel="noopener">Source on GitHub</a> · MIT License</p>
+    </div>
+  </div>
+</footer>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<script src="assets/vendor/katex/katex.min.js"></script>
+<script src="assets/vendor/katex/auto-render.min.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/poly.js"></script>
+</body>
+</html>

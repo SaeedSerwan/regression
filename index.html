@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Regression Lab · Interactive Linear Regression &amp; Evaluation Metrics</title>
-  <meta name="description" content="An interactive, browser-based lab for learning simple linear regression and its evaluation metrics: MAE, MSE, RMSE, R², adjusted R² and MAPE. College of Computer Studies, University of Technology Bahrain.">
+  <meta name="description" content="An interactive, browser-based lab for learning linear regression and its evaluation metrics: MAE, MSE, RMSE, R², adjusted R² and MAPE. College of Computer Studies, University of Technology Bahrain.">
   <meta name="author" content="Eng. Saeed Serwan Abdulsattar">
   <meta property="og:title" content="Regression Lab — Interactive Linear Regression">
   <meta property="og:description" content="Drag the data, fit the line, and watch MAE, MSE, RMSE and R² respond in real time.">
@@ -26,10 +26,11 @@
       <span class="brand-sub">College of Computer Studies · University of Technology Bahrain</span>
     </div>
   </div>
+  <nav class="page-tabs" aria-label="Lessons">
+    <a href="index.html" class="active" aria-current="page">Linear regression</a>
+    <a href="polynomial.html">Polynomial regression</a>
+  </nav>
   <nav class="top-links">
-    <a href="#playground">Playground</a>
-    <a href="#metrics">Metrics</a>
-    <a href="#quiz">Quiz</a>
     <a href="https://github.com/SaeedSerwan/regression" target="_blank" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -290,6 +291,11 @@
       </div>
       <div class="callout-row" id="of-stats"></div>
       <p class="note">Degree 1 is a straight line: it <strong>underfits</strong> (high bias), with high error on both sets. Around degree 3–5 test error is lowest. Push to 10+ and training error keeps falling while test error explodes: the model has memorised the noise (<strong>overfitting</strong>, high variance). A negative test R² is a red flag.</p>
+      <a class="next-card" href="polynomial.html">
+        <span class="next-eyebrow">Next lesson</span>
+        <span class="next-title">Polynomial regression →</span>
+        <span class="next-text">Fit curves with the same least-squares machinery, choose the degree with cross-validation, and tame wild curves with regularisation.</span>
+      </a>
     </section>
 
     <!-- ======================================================= 8 · INFERENCE -->
@@ -324,6 +330,11 @@
       <p>Answer each question; feedback appears instantly.</p>
       <div id="quiz-box"></div>
       <div class="quiz-score" id="quiz-score"></div>
+      <a class="next-card" href="polynomial.html">
+        <span class="next-eyebrow">Continue</span>
+        <span class="next-title">Polynomial regression →</span>
+        <span class="next-text">When a straight line is not enough.</span>
+      </a>
     </section>
   </main>
 </div>
@@ -344,6 +355,7 @@
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
 <script src="assets/js/core.js"></script>
+<script src="assets/js/ui.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

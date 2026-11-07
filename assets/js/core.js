@@ -170,9 +170,12 @@
   /* ---------------------------------------------- polynomial least squares */
   /** Solve min ||A c − y|| with Householder QR (stable for high-degree polynomials). */
   function lstsq(A, y) {
-    const n = A.length, k = A[0].length;
+    const k = A[0].length;
     const R = A.map((r) => r.slice());
     const q = y.slice();
+    // more unknowns than equations: pad with zero rows; unidentifiable coefficients are set to 0
+    while (R.length < k) { R.push(new Array(k).fill(0)); q.push(0); }
+    const n = R.length;
     for (let j = 0; j < k; j++) {
       let norm = 0;
       for (let i = j; i < n; i++) norm += R[i][j] ** 2;
@@ -205,14 +208,50 @@
     return c;
   }
 
-  /** Fit a polynomial of the given degree; returns a predict(x) function */
-  function polyFit(xs, ys, degree) {
+  /**
+   * Fit a polynomial of the given degree by least squares.
+   * lambda > 0 adds a ridge (L2) penalty on every coefficient except the intercept.
+   * x is mapped to [-1, 1] internally for numerical stability.
+   * Returns predict(x), the internal coefficients, and coefficients in the original x units.
+   */
+  function polyFit(xs, ys, degree, lambda = 0) {
     const lo = Math.min(...xs), hi = Math.max(...xs);
-    const c0 = (lo + hi) / 2, s = (hi - lo) / 2 || 1;   // map x to [-1, 1] for stability
+    const c0 = (lo + hi) / 2, s = (hi - lo) / 2 || 1;
     const row = (x) => { const u = (x - c0) / s; const r = [1]; for (let d = 1; d <= degree; d++) r.push(r[d - 1] * u); return r; };
-    const coef = lstsq(xs.map(row), ys);
+    const A = xs.map(row), y = ys.slice();
+    if (lambda > 0) {
+      for (let j = 1; j <= degree; j++) { const r = new Array(degree + 1).fill(0); r[j] = Math.sqrt(lambda); A.push(r); y.push(0); }
+    }
+    const coef = lstsq(A, y);
     const predict = (x) => { const r = row(x); let v = 0; for (let i = 0; i < r.length; i++) v += coef[i] * r[i]; return v; };
-    return { predict, coef, degree };
+    // expand sum_k a_k ((x - c0)/s)^k into sum_j beta_j x^j
+    const beta = new Array(degree + 1).fill(0);
+    for (let k = 0; k <= degree; k++) {
+      let binom = 1;
+      for (let j = 0; j <= k; j++) {
+        if (j > 0) binom = binom * (k - j + 1) / j;
+        beta[j] += coef[k] * binom * Math.pow(-c0, k - j) / Math.pow(s, k);
+      }
+    }
+    return { predict, coef, beta, degree, lambda, center: c0, scale: s };
+  }
+
+  /**
+   * k-fold cross-validation RMSE (errors pooled over all held-out points).
+   * fit(trainX, trainY) must return a predict(x) function.
+   */
+  function kFoldRMSE(xs, ys, fit, k = 5, seed = 0) {
+    const n = xs.length;
+    if (n < k) return NaN;
+    const r = rng(seed + 1), idx = xs.map((_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    let sse = 0;
+    for (let f = 0; f < k; f++) {
+      const test = idx.filter((_, i) => i % k === f), train = idx.filter((_, i) => i % k !== f);
+      const predict = fit(train.map((i) => xs[i]), train.map((i) => ys[i]));
+      test.forEach((i) => { sse += (ys[i] - predict(xs[i])) ** 2; });
+    }
+    return Math.sqrt(sse / n);
   }
 
   /* ---------------------------------------------------------- randomness */
@@ -355,6 +394,81 @@
     },
   };
 
+  /** Datasets with curved relationships, used on the polynomial page */
+  const POLY_DATASETS = {
+    stopping: {
+      title: 'Car speed → stopping distance',
+      xLabel: 'Speed (km/h)', yLabel: 'Stopping distance (m)', xUnit: 'km/h', yUnit: 'm',
+      story: 'Braking distance grows with the square of speed, so doubling your speed far more than doubles the distance you need to stop.',
+      make(seed = 13) {
+        const r = rng(seed), pts = [];
+        for (let i = 0; i < 24; i++) {
+          const x = Math.round(r.uniform(20, 130));
+          pts.push([x, round(Math.max(3, 0.417 * x + 0.0055 * x * x + (2 + 0.05 * x) * r.normal()), 1)]);
+        }
+        return pts;
+      },
+    },
+    projectile: {
+      title: 'Thrown ball: height over time',
+      xLabel: 'Time (s)', yLabel: 'Height (m)', xUnit: 's', yUnit: 'm',
+      story: 'A ball thrown upwards rises, slows, and falls back. Physics says the path is exactly a parabola: h = h₀ + v₀t − ½gt².',
+      make(seed = 19) {
+        const r = rng(seed), pts = [];
+        for (let i = 0; i < 20; i++) {
+          const x = round(r.uniform(0, 2.9), 2);
+          pts.push([x, round(1.5 + 14 * x - 4.9 * x * x + 0.45 * r.normal(), 2)]);
+        }
+        return pts;
+      },
+    },
+    fertiliser: {
+      title: 'Fertiliser → crop yield',
+      xLabel: 'Fertiliser applied (kg/ha)', yLabel: 'Yield (t/ha)', xUnit: 'kg/ha', yUnit: 't/ha',
+      story: 'More fertiliser helps, up to a point. Beyond the optimum, extra fertiliser damages the crop: diminishing and then negative returns.',
+      make(seed = 23) {
+        const r = rng(seed), pts = [];
+        for (let i = 0; i < 25; i++) {
+          const x = Math.round(r.uniform(0, 260));
+          pts.push([x, round(2 + 0.08 * x - 0.00025 * x * x + 0.4 * r.normal(), 2)]);
+        }
+        return pts;
+      },
+    },
+    income: {
+      title: 'Age → monthly income',
+      xLabel: 'Age (years)', yLabel: 'Monthly income (BD)', xUnit: 'yr', yUnit: 'BD',
+      story: 'Income tends to rise through a career, peak in the late 40s, and fall towards retirement: an inverted U.',
+      make(seed = 31) {
+        const r = rng(seed), pts = [];
+        for (let i = 0; i < 30; i++) {
+          const x = Math.round(r.uniform(20, 70));
+          pts.push([x, Math.round(1400 - (x - 48) ** 2 + 100 * r.normal())]);
+        }
+        return pts;
+      },
+    },
+    electricity: {
+      title: 'Hour of day → electricity demand',
+      xLabel: 'Hour of day', yLabel: 'Demand (MW)', xUnit: 'h', yUnit: 'MW',
+      story: 'Demand is low overnight, climbs through the morning and peaks in the hot afternoon as air-conditioning runs. A straight line cannot follow it.',
+      make(seed = 37) {
+        const r = rng(seed), pts = [];
+        for (let i = 0; i < 30; i++) {
+          const x = round(r.uniform(0, 24), 1);
+          pts.push([x, Math.round(1000 + 300 * Math.sin(2 * Math.PI * (x - 9) / 24) + 40 * r.normal())]);
+        }
+        return pts;
+      },
+    },
+    straight: {
+      title: 'Straight-line data (control)',
+      xLabel: 'Hours studied per week', yLabel: 'Exam score (%)', xUnit: 'h', yUnit: 'pts',
+      story: 'The true relationship here is linear. Watch what extra degrees buy you: almost nothing on training error, and worse cross-validation error.',
+      make() { return DATASETS.study.make(); },
+    },
+  };
+
   /** Random linear data with a chosen amount of noise */
   function randomLinear({ n = 25, slope = 1.5, intercept = 2, noise = 2, seed = 1 } = {}) {
     const r = rng(seed), pts = [];
@@ -380,6 +494,6 @@
 
   return {
     sum, mean, ols, pearson, metrics, lineMetrics, inference, tPValue, fPValue, tCritical,
-    ibeta, lstsq, polyFit, rng, DATASETS, randomLinear, curveData,
+    ibeta, lstsq, polyFit, kFoldRMSE, rng, DATASETS, POLY_DATASETS, randomLinear, curveData,
   };
 });
