@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regression Lab · Interactive Linear Regression &amp; Evaluation Metrics</title>
+  <meta name="description" content="An interactive, browser-based lab for learning simple linear regression and its evaluation metrics: MAE, MSE, RMSE, R², adjusted R² and MAPE. College of Computer Studies, University of Technology Bahrain.">
+  <meta name="author" content="Eng. Saeed Serwan Abdulsattar">
+  <meta property="og:title" content="Regression Lab — Interactive Linear Regression">
+  <meta property="og:description" content="Drag the data, fit the line, and watch MAE, MSE, RMSE and R² respond in real time.">
+  <meta property="og:image" content="assets/img/favicon-512.png">
+  <meta name="theme-color" content="#d52a55">
+  <link rel="icon" type="image/svg+xml" href="assets/img/utb-logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/img/favicon-180.png">
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <img class="brand-logo" src="assets/img/utb-logo.svg" alt="University of Technology Bahrain logo" onerror="this.remove()">
+    <div class="brand-text">
+      <span class="brand-title">Regression Lab</span>
+      <span class="brand-sub">College of Computer Studies · University of Technology Bahrain</span>
+    </div>
+  </div>
+  <nav class="top-links">
+    <a href="#playground">Playground</a>
+    <a href="#metrics">Metrics</a>
+    <a href="#quiz">Quiz</a>
+    <a href="https://github.com/SaeedSerwan/regression" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#model">The model</a></li>
+      <li><a href="#playground">Fit a line yourself</a></li>
+      <li><a href="#least-squares">Why least squares?</a></li>
+      <li><a href="#metrics">Evaluation metrics</a></li>
+      <li><a href="#outliers">Outliers: MAE vs RMSE</a></li>
+      <li><a href="#gradient">Gradient descent</a></li>
+      <li><a href="#overfitting">Train / test &amp; overfitting</a></li>
+      <li><a href="#inference">Is the slope real?</a></li>
+      <li><a href="#code">Do it in Python</a></li>
+      <li><a href="#quiz">Check your understanding</a></li>
+    </ol>
+  </aside>
+
+  <main>
+    <!-- ================================================================ HERO -->
+    <section class="hero">
+      <p class="eyebrow">Supervised learning · Regression</p>
+      <h1>Linear regression, <em>hands-on</em>.</h1>
+      <p class="lead">
+        Linear regression is the first model most data scientists learn and the one they keep using.
+        This lab lets you build the intuition by doing: drag the data, draw your own line, and watch
+        every evaluation metric (MAE, MSE, RMSE, R², adjusted R², MAPE) respond in real time.
+      </p>
+      <div class="learn-grid">
+        <div><span class="num">01</span>Interpret slope, intercept and residuals</div>
+        <div><span class="num">02</span>Explain why we minimise <em>squared</em> error</div>
+        <div><span class="num">03</span>Compute and compare MAE, MSE, RMSE, R² and MAPE</div>
+        <div><span class="num">04</span>See how outliers, learning rate and model complexity change the picture</div>
+        <div><span class="num">05</span>Reproduce every number in Python</div>
+      </div>
+    </section>
+
+    <!-- =========================================================== 1 · MODEL -->
+    <section id="model" class="chapter">
+      <h2><span class="chap">1</span>The model</h2>
+      <p>Simple linear regression describes a target \(y\) as a straight-line function of one feature \(x\):</p>
+      <div class="formula">$$\hat{y} = m\,x + b$$</div>
+      <div class="def-grid">
+        <div><strong>\(\hat{y}\)</strong> “y-hat”: the model’s <em>prediction</em>.</div>
+        <div><strong>\(m\)</strong> slope: how much \(\hat y\) changes when \(x\) rises by one unit.</div>
+        <div><strong>\(b\)</strong> intercept (bias): the prediction when \(x = 0\).</div>
+        <div><strong>\(e_i = y_i - \hat{y}_i\)</strong> residual: the error on point \(i\). Positive means the line is too low.</div>
+      </div>
+      <p>Training means choosing \(m\) and \(b\) so that the residuals are as small as possible, overall. How we define “small overall” is the whole story of this lab.</p>
+    </section>
+
+    <!-- ====================================================== 2 · PLAYGROUND -->
+    <section id="playground" class="chapter">
+      <h2><span class="chap">2</span>Fit a line yourself</h2>
+      <p>Pick a dataset, then move the sliders to fit the <span class="swatch user"></span><strong>your line</strong> by eye. Turn on the <span class="swatch fit"></span><strong>best-fit line</strong> to compare against ordinary least squares.</p>
+
+      <div class="toolbar">
+        <label class="field">
+          <span>Dataset</span>
+          <select id="ds-select">
+            <optgroup label="Real-world style">
+              <option value="study">Study hours → exam score</option>
+              <option value="house">House size → price</option>
+              <option value="icecream">Temperature → ice-cream sales</option>
+              <option value="car">Car age → resale value</option>
+              <option value="salary">Experience → monthly salary</option>
+              <option value="advertising">Advertising spend → sales</option>
+              <option value="engine">Engine size → CO₂ emissions</option>
+            </optgroup>
+            <optgroup label="Experiments">
+              <option value="random">Random generator (choose the noise)</option>
+              <option value="noise">No relationship (pure noise)</option>
+              <option value="blank">Blank canvas — make your own</option>
+              <option value="custom" disabled>Your uploaded data</option>
+            </optgroup>
+          </select>
+        </label>
+        <div class="toolbar-actions">
+          <button class="btn ghost" id="btn-import">Import CSV / paste</button>
+          <button class="btn ghost" id="btn-export">Download CSV</button>
+        </div>
+      </div>
+
+      <div id="random-controls" class="random-controls" hidden>
+        <label class="slider"><span>Points <b id="rnd-n-val"></b></span><input type="range" id="rnd-n" min="5" max="80" value="25"></label>
+        <label class="slider"><span>Noise σ <b id="rnd-noise-val"></b></span><input type="range" id="rnd-noise" min="0" max="8" step="0.1" value="2"></label>
+        <label class="slider"><span>True slope <b id="rnd-slope-val"></b></span><input type="range" id="rnd-slope" min="-3" max="3" step="0.1" value="1.5"></label>
+        <button class="btn" id="rnd-go">New sample</button>
+      </div>
+
+      <div id="import-panel" class="import-panel" hidden>
+        <p>Paste two columns (x, y) separated by a comma, tab or space. A header row is fine. Or choose a <code>.csv</code> file.</p>
+        <textarea id="import-text" rows="6" placeholder="hours,score&#10;1.5,52&#10;3,61&#10;4.2,66"></textarea>
+        <div class="row">
+          <input type="file" id="import-file" accept=".csv,.txt,.tsv">
+          <button class="btn" id="import-go">Load data</button>
+          <span id="import-msg" class="msg"></span>
+        </div>
+      </div>
+
+      <p class="story" id="ds-story"></p>
+
+      <div class="pg-grid">
+        <figure class="plot-card">
+          <svg id="pg-plot" class="plot" role="img" aria-label="Scatter plot with regression lines"></svg>
+          <figcaption>Drag a point to move it · click empty space to add one · double-click a point to delete it.</figcaption>
+        </figure>
+
+        <div class="side">
+          <div class="panel">
+            <h4>Your line <span class="eq user" id="user-eq"></span></h4>
+            <label class="slider"><span>Slope m <b id="m-val"></b></span><input type="range" id="m-slider"></label>
+            <label class="slider"><span>Intercept b <b id="b-val"></b></span><input type="range" id="b-slider"></label>
+            <div class="btn-row">
+              <button class="btn" id="btn-snap">Snap to best fit</button>
+              <button class="btn ghost" id="btn-flat">Flat line at ȳ</button>
+            </div>
+            <div class="toggles">
+              <label><input type="checkbox" id="tg-best"> Best-fit line <span class="eq fit" id="best-eq"></span></label>
+              <label><input type="checkbox" id="tg-resid" checked> Residuals</label>
+              <label><input type="checkbox" id="tg-squares"> Squared errors (as squares)</label>
+              <label><input type="checkbox" id="tg-mean"> Mean line ȳ (baseline)</label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>Live metrics</h4>
+            <table class="metric-table">
+              <thead><tr><th></th><th class="user">Your line</th><th class="fit">Best fit</th></tr></thead>
+              <tbody id="metric-body"></tbody>
+            </table>
+            <div class="meter">
+              <div class="meter-label"><span>Fit quality (best SSE ÷ your SSE)</span><b id="meter-val"></b></div>
+              <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== 3 · LEAST SQUARES -->
+    <section id="least-squares" class="chapter">
+      <h2><span class="chap">3</span>Why least squares?</h2>
+      <p>A natural first idea is to add up the residuals. It fails, because positive and negative errors cancel: the flat line at the mean has a total residual of exactly zero, yet it ignores \(x\) completely.</p>
+      <div class="callout-row">
+        <div class="stat"><span>Σ e (your line)</span><b id="ls-sum-e"></b></div>
+        <div class="stat"><span>Σ |e| (your line)</span><b id="ls-sum-abs"></b></div>
+        <div class="stat"><span>Σ e² (your line)</span><b id="ls-sum-sq"></b></div>
+      </div>
+      <p>Squaring every residual fixes the cancelling, punishes big misses more than small ones, and gives a smooth bowl-shaped loss with a single minimum. Setting its derivatives to zero gives the <strong>ordinary least squares (OLS)</strong> solution in closed form:</p>
+      <div class="formula">$$m = \frac{\sum_i (x_i-\bar x)(y_i-\bar y)}{\sum_i (x_i-\bar x)^2}, \qquad b = \bar y - m\,\bar x$$</div>
+      <p class="live-calc" id="ls-calc"></p>
+      <p class="note">Turn on <em>Squared errors</em> in the playground: the best-fit line is the one that makes the total area of the squares as small as possible.</p>
+    </section>
+
+    <!-- ========================================================= 4 · METRICS -->
+    <section id="metrics" class="chapter">
+      <h2><span class="chap">4</span>Evaluation metrics</h2>
+      <p>Once a model makes predictions, we need a single number that says how good they are. Each metric below answers a slightly different question. Live values use the <span id="metric-src-label">best-fit line</span> on the playground data.</p>
+      <div class="seg" role="tablist" aria-label="Line used for live values">
+        <button class="seg-btn active" data-src="best">Best fit</button>
+        <button class="seg-btn" data-src="user">Your line</button>
+      </div>
+
+      <div class="card-grid" id="metric-cards"></div>
+
+      <h3>Where the numbers come from</h3>
+      <p>Every metric is built from the same residual table. MAE averages the <em>|e|</em> column, MSE averages the <em>e²</em> column, and RMSE takes its square root.</p>
+      <div class="table-wrap"><table class="resid-table" id="resid-table"></table></div>
+
+      <h3>What R² really measures</h3>
+      <p>R² compares your model with the simplest possible baseline: always predicting the mean \(\bar y\). <strong>SST</strong> is the baseline’s squared error, <strong>SSE</strong> is your model’s. R² is the share of the baseline error that the model removes.</p>
+      <div class="formula">$$R^2 = 1 - \frac{\text{SSE}}{\text{SST}} = 1 - \frac{\sum (y_i-\hat y_i)^2}{\sum (y_i-\bar y)^2}$$</div>
+      <div id="r2-bars" class="r2-bars"></div>
+      <p class="note">Try dragging your line far away from the data: when SSE exceeds SST, R² goes <strong>negative</strong>, meaning the model is worse than just guessing the average.</p>
+
+      <h3>Cheat sheet</h3>
+      <div class="table-wrap">
+        <table class="cheat">
+          <thead><tr><th>Metric</th><th>Units</th><th>Range</th><th>Best</th><th>Outlier sensitivity</th><th>Use it when…</th></tr></thead>
+          <tbody>
+            <tr><td>MAE</td><td>same as y</td><td>[0, ∞)</td><td>0</td><td>Low</td><td>you want the “typical” error, in plain units</td></tr>
+            <tr><td>MSE</td><td>y²</td><td>[0, ∞)</td><td>0</td><td>High</td><td>training / optimising (smooth, differentiable)</td></tr>
+            <tr><td>RMSE</td><td>same as y</td><td>[0, ∞)</td><td>0</td><td>High</td><td>large errors are costly and must be penalised</td></tr>
+            <tr><td>R²</td><td>none</td><td>(−∞, 1]</td><td>1</td><td>High</td><td>comparing to the mean baseline; explaining variance</td></tr>
+            <tr><td>Adjusted R²</td><td>none</td><td>(−∞, 1]</td><td>1</td><td>High</td><td>comparing models with different numbers of features</td></tr>
+            <tr><td>MAPE</td><td>%</td><td>[0, ∞)</td><td>0</td><td>Medium</td><td>stakeholders want relative error and y is never near 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Always true: <strong>MAE ≤ RMSE</strong>. The larger the gap, the more your error is concentrated in a few big misses.</p>
+    </section>
+
+    <!-- ======================================================== 5 · OUTLIERS -->
+    <section id="outliers" class="chapter">
+      <h2><span class="chap">5</span>Outliers: MAE vs RMSE</h2>
+      <p>One bad data point can dominate a squared-error metric. Move the <span class="swatch bad"></span>red point up or down and compare how MAE and RMSE react.</p>
+      <div class="two-col">
+        <figure class="plot-card"><svg id="out-plot" class="plot" role="img" aria-label="Data with one outlier"></svg></figure>
+        <figure class="plot-card"><svg id="out-chart" class="plot" role="img" aria-label="MAE and RMSE versus outlier size"></svg></figure>
+      </div>
+      <div class="controls-row">
+        <label class="slider wide"><span>Outlier offset <b id="out-val"></b></span><input type="range" id="out-slider" min="-25" max="25" step="0.5" value="0"></label>
+        <label class="check"><input type="checkbox" id="out-refit" checked> Refit the line (OLS gets pulled towards the outlier)</label>
+      </div>
+      <div class="callout-row" id="out-stats"></div>
+      <p class="note">MAE grows linearly with the outlier; RMSE grows much faster because the error is squared before averaging. If occasional big misses are acceptable, report MAE; if they are dangerous, report RMSE.</p>
+    </section>
+
+    <!-- ======================================================== 6 · GRADIENT -->
+    <section id="gradient" class="chapter">
+      <h2><span class="chap">6</span>Learning the line with gradient descent</h2>
+      <p>OLS has a closed-form answer, but most machine-learning models do not. They are trained by <strong>gradient descent</strong>: start with a guess and repeatedly step downhill on the loss surface.</p>
+      <div class="formula">$$m \leftarrow m - \eta\,\frac{\partial\,\text{MSE}}{\partial m}, \qquad b \leftarrow b - \eta\,\frac{\partial\,\text{MSE}}{\partial b}$$
+      $$\frac{\partial\,\text{MSE}}{\partial m} = -\frac{2}{n}\sum_i x_i\,(y_i-\hat y_i), \qquad \frac{\partial\,\text{MSE}}{\partial b} = -\frac{2}{n}\sum_i (y_i-\hat y_i)$$</div>
+      <p>The data comes from the playground. Features are rescaled before training (as you would in practice); results are converted back to the original units.</p>
+      <div class="controls-row">
+        <label class="slider wide"><span>Learning rate η <b id="gd-lr-val"></b></span><input type="range" id="gd-lr" min="-3" max="0.2" step="0.01" value="-1"></label>
+        <label class="field"><span>Feature scaling</span>
+          <select id="gd-scale">
+            <option value="z">Standardised (z-score, centred)</option>
+            <option value="minmax">Min–max to [0, 1] (not centred)</option>
+          </select>
+        </label>
+        <div class="btn-row">
+          <button class="btn" id="gd-play">Run</button>
+          <button class="btn ghost" id="gd-step">Step</button>
+          <button class="btn ghost" id="gd-reset">Reset</button>
+        </div>
+      </div>
+      <div class="gd-grid">
+        <figure class="plot-card"><svg id="gd-plot" class="plot" role="img" aria-label="Current line during training"></svg><figcaption>Current line vs best fit</figcaption></figure>
+        <figure class="plot-card contour-card">
+          <div class="contour-wrap"><canvas id="gd-contour" width="360" height="360" aria-label="Loss surface with descent path"></canvas></div>
+          <figcaption>Loss surface (darker = lower MSE) and the path taken</figcaption>
+        </figure>
+        <figure class="plot-card"><svg id="gd-loss" class="plot" role="img" aria-label="Loss per iteration"></svg><figcaption>MSE per iteration (log scale)</figcaption></figure>
+      </div>
+      <div class="callout-row" id="gd-stats"></div>
+      <p class="note">Try η above ≈ 1 with z-scores, or above ≈ 0.6 with min–max scaling: the steps overshoot and the loss <strong>diverges</strong>. With un-centred features the bowl is a long narrow valley, so the same learning rate converges far more slowly. That is why we standardise features.</p>
+    </section>
+
+    <!-- ===================================================== 7 · OVERFITTING -->
+    <section id="overfitting" class="chapter">
+      <h2><span class="chap">7</span>Train / test &amp; overfitting</h2>
+      <p>Metrics computed on the data the model was trained on are optimistic. To estimate real-world performance we hold out a <strong>test set</strong>. Here we fit polynomials of increasing degree to curved data: <span class="swatch point"></span>training points and <span class="swatch hollow"></span>test points.</p>
+      <div class="two-col">
+        <figure class="plot-card"><svg id="of-plot" class="plot" role="img" aria-label="Polynomial fit"></svg></figure>
+        <figure class="plot-card"><svg id="of-chart" class="plot" role="img" aria-label="Train and test RMSE by degree"></svg></figure>
+      </div>
+      <div class="controls-row">
+        <label class="slider wide"><span>Polynomial degree <b id="of-deg-val"></b></span><input type="range" id="of-deg" min="1" max="12" value="1"></label>
+        <label class="slider"><span>Noise σ <b id="of-noise-val"></b></span><input type="range" id="of-noise" min="0.05" max="0.8" step="0.05" value="0.3"></label>
+        <button class="btn ghost" id="of-new">New sample</button>
+      </div>
+      <div class="callout-row" id="of-stats"></div>
+      <p class="note">Degree 1 is a straight line: it <strong>underfits</strong> (high bias), with high error on both sets. Around degree 3–5 test error is lowest. Push to 10+ and training error keeps falling while test error explodes: the model has memorised the noise (<strong>overfitting</strong>, high variance). A negative test R² is a red flag.</p>
+    </section>
+
+    <!-- ======================================================= 8 · INFERENCE -->
+    <section id="inference" class="chapter">
+      <h2><span class="chap">8</span>Is the slope real? Statistical output</h2>
+      <p>Statistics packages report more than the fitted line. Each coefficient has a <strong>standard error</strong> (how much it would wobble across new samples), a <strong>t-statistic</strong> and a <strong>p-value</strong> for the null hypothesis “the true coefficient is 0”. This table updates with the playground data.</p>
+      <div class="table-wrap"><table class="stats-table" id="inf-coef"></table></div>
+      <div class="stats-grid" id="inf-summary"></div>
+      <p class="interpret" id="inf-text"></p>
+      <p class="note">A tiny p-value says the relationship is unlikely to be pure chance. It does <em>not</em> say the model predicts well (check RMSE) or that x <em>causes</em> y.</p>
+    </section>
+
+    <!-- ============================================================ 9 · CODE -->
+    <section id="code" class="chapter">
+      <h2><span class="chap">9</span>Do it in Python</h2>
+      <p>The snippets below contain the <strong>current playground data</strong>. Copy one into Jupyter or Google Colab and you should get exactly the numbers shown on this page.</p>
+      <div class="seg" role="tablist" aria-label="Code examples">
+        <button class="seg-btn active" data-code="numpy">NumPy (from scratch)</button>
+        <button class="seg-btn" data-code="sklearn">scikit-learn</button>
+        <button class="seg-btn" data-code="statsmodels">statsmodels</button>
+      </div>
+      <div class="code-box">
+        <button class="btn small copy" id="code-copy">Copy</button>
+        <pre><code id="code-block"></code></pre>
+      </div>
+      <p class="note">The repository also includes a Jupyter notebook with exercises (<a href="https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/linear_regression_metrics.ipynb" target="_blank" rel="noopener">open in Google Colab</a>) and every dataset as a CSV file in <a href="https://github.com/SaeedSerwan/regression/tree/main/data" target="_blank" rel="noopener"><code>data/</code></a>.</p>
+    </section>
+
+    <!-- ============================================================ 10 · QUIZ -->
+    <section id="quiz" class="chapter">
+      <h2><span class="chap">10</span>Check your understanding</h2>
+      <p>Answer each question; feedback appears instantly.</p>
+      <div id="quiz-box"></div>
+      <div class="quiz-score" id="quiz-score"></div>
+    </section>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <img class="footer-logo" src="assets/img/utb-logo.svg" alt="" onerror="this.remove()">
+    <div>
+      <p><strong>Regression Lab</strong>: an open teaching resource for Machine Learning and Data Science courses.</p>
+      <p>Created by <strong>Eng. Saeed Serwan Abdulsattar</strong>, College of Computer Studies, University of Technology Bahrain.</p>
+      <p><a href="https://github.com/SaeedSerwan/regression" target="_blank" rel="noopener">Source on GitHub</a> · MIT License</p>
+    </div>
+  </div>
+</footer>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<script src="assets/vendor/katex/katex.min.js"></script>
+<script src="assets/vendor/katex/auto-render.min.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
