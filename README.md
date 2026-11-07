@@ -5,13 +5,15 @@
 <h1 align="center">Regression Lab</h1>
 
 <p align="center">
-  <strong>An interactive, browser-based lab for learning linear and polynomial regression and their evaluation metrics.</strong><br>
+  <strong>An interactive, browser-based lab for learning linear and polynomial regression, their evaluation metrics, and how to code them in Python.</strong><br>
   College of Computer Studies · University of Technology Bahrain
 </p>
 
 <p align="center">
-  <a href="https://saeedserwan.github.io/regression/"><strong>▶ Lesson 1: Linear regression</strong></a> ·
-  <a href="https://saeedserwan.github.io/regression/polynomial.html"><strong>▶ Lesson 2: Polynomial regression</strong></a><br>
+  <a href="https://saeedserwan.github.io/regression/"><strong>▶ 1 · Linear regression</strong></a> ·
+  <a href="https://saeedserwan.github.io/regression/polynomial.html"><strong>▶ 2 · Polynomial regression</strong></a> ·
+  <a href="https://saeedserwan.github.io/regression/code-linear.html"><strong>▶ 3 · Linear in Python</strong></a> ·
+  <a href="https://saeedserwan.github.io/regression/code-polynomial.html"><strong>▶ 4 · Polynomial in Python</strong></a><br>
   <a href="notebooks/">Jupyter notebooks</a> ·
   <a href="data/">Datasets</a>
 </p>
@@ -54,6 +56,15 @@ It runs entirely in the browser: no installation, no sign-up, no server. It also
 | 7 | **Ridge regularisation** | the L2 penalty, choosing λ by cross-validation, coefficient shrinkage |
 | 8 | **Do it in Python** | NumPy, scikit-learn pipelines with CV, and Ridge, generated from the current data |
 | 9 | **Quiz** | nine self-check questions |
+
+### Lessons 3 and 4: the code, line by line
+
+Two notebook-style pages walk through a complete, runnable Python notebook. **Every line of code is explained**: hover over (or tap) a line on the website to highlight its explanation. All outputs and charts shown were produced by running the notebook itself.
+
+| Lesson | Dataset | Steps |
+|---|---|---|
+| **3 · [Linear in Python](https://saeedserwan.github.io/regression/code-linear.html)** · [Colab](https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/walkthrough_linear_regression.ipynb) | house size → price | load & inspect with pandas · histograms and scatter plot · correlation · train/test split · fit `LinearRegression` · predictions table · MAE, MSE, RMSE, R², adjusted R², MAPE (and by hand) · fitted-line plot · residual diagnostics · predicted vs actual · predicting new houses |
+| **4 · [Polynomial in Python](https://saeedserwan.github.io/regression/code-polynomial.html)** · [Colab](https://colab.research.google.com/github/SaeedSerwan/regression/blob/main/notebooks/walkthrough_polynomial_regression.ipynb) | car speed → stopping distance | straight-line baseline and its residual pattern · `PolynomialFeatures` · pipelines · line vs quadratic on a test set · overfitting with degree 10 · choosing the degree with 5-fold cross-validation · final model · extrapolation danger |
 
 ## Datasets
 
@@ -136,12 +147,29 @@ regression/
 │   ├── js/poly.js              # Lesson 2 interactions
 │   ├── img/                    # UTB logo and favicons
 │   └── vendor/                 # KaTeX and fonts, bundled for offline use
+├── code-linear.html            # Lesson 3: linear regression in Python (generated)
+├── code-polynomial.html        # Lesson 4: polynomial regression in Python (generated)
 ├── data/                       # all datasets as CSV
 ├── notebooks/
 │   ├── linear_regression_metrics.ipynb
-│   └── polynomial_regression.ipynb
+│   ├── polynomial_regression.ipynb
+│   ├── walkthrough_linear_regression.ipynb       # Lesson 3 notebook
+│   └── walkthrough_polynomial_regression.ipynb   # Lesson 4 notebook
+├── tools/
+│   ├── walkthrough_content.py  # the code and line-by-line explanations for lessons 3 and 4
+│   └── build_walkthroughs.py   # runs the notebooks and generates the two pages
 └── python/
     └── regression_metrics.py   # metrics from scratch vs scikit-learn
+```
+
+## Editing lessons 3 and 4
+
+The walkthrough pages and their notebooks are generated from one source, so they never drift apart.
+Edit `tools/walkthrough_content.py` (append `# >> explanation` to any code line), then run:
+
+```bash
+pip install numpy pandas matplotlib scikit-learn nbformat nbclient ipykernel markdown pillow
+python tools/build_walkthroughs.py
 ```
 
 ## Author
